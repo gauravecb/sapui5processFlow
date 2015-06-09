@@ -1,4 +1,5 @@
 //firstchange
+//second change
 jQuery.sap.require("com.sap.dashboard.js.jqplot");
 jQuery.sap.require("com.sap.dashboard.js.pieRenderer");
 jQuery.sap.declare("com.sap.dashboard.view.customPieLegands");
