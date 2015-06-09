@@ -1,0 +1,65 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="X-UA-Compatible" content="IE=edge">
+		<meta http-equiv='Content-Type' content='text/html;charset=UTF-8'/>
+		<link rel="stylesheet" type="text/css" href="css/style.css"> 
+		<link href="css/jquery.circliful.css" rel="stylesheet" type="text/css" />
+		<link href="css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+		 <script class="include" type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+	    <link class="include" rel="stylesheet" type="text/css" href="css/jquery.jqplot.css" />
+		
+		<script class="include" type="text/javascript" src="js/jqplot.pieRenderer.js"></script> 
+		<script src="js/jquery.circliful.min.js"></script>
+		<script src="resources/sap-ui-core.js"
+				id="sap-ui-bootstrap"
+				data-sap-ui-libs="sap.m"
+				data-sap-ui-theme="sap_bluecrystal"
+				data-sap-ui-resourceroots='{"com.sap.dashboard": "./"}'>
+		</script>
+		<!-- only load the mobile lib "sap.m" and the "sap_mvi" theme -->
+
+		<script>
+		sap.ui.localResources("customprocessflow");
+		sap.ui.localResources("js");
+		sap.ui.localResources("fonts");
+		sap.ui.localResources("css");
+				new sap.m.Shell({
+					title:"Budget Allocation",
+					app: new sap.ui.core.ComponentContainer({
+						name : 'com.sap.dashboard'
+					})
+				}).placeAt("content");
+		</script>
+		<script class="code" type="text/javascript">$(document).ready(function(){
+		   plot3 = jQuery.jqplot('__xmlview0--chart3', 
+		    [[['Verwerkende industrie',9],['Retail', 10], ['Primaire producent', 5], 
+		    ['Out of home', 0],['Groothandel', 0], ['Grondstof', 0], ['Consument', 0], ['Bewerkende industrie', 2]]], 
+		    {
+		      title: ' ', 
+		      seriesDefaults: {
+		        shadow: false, 
+		        renderer: jQuery.jqplot.PieRenderer, 
+		        rendererOptions: { 
+		          sliceMargin: 4, 
+		          showDataLabels: true 
+		        } 
+		      }, 
+		      legend: { show:true, location: 'e' }
+		    }
+		  );
+		
+		  
+		});
+ </script>
+
+	</head>
+	<body class="sapUiBody" role="application">
+		<div id="content"></div>
+		<script class="include" type="text/javascript" src="js/jqplot.js"></script>
+    <script type="text/javascript" src="js/scripts/shCore.min.js"></script>
+    <script type="text/javascript" src="js/scripts/shBrushJScript.min.js"></script>
+    <script type="text/javascript" src="js/scripts/shBrushXml.min.js"></script>
+    <script class="include" type="text/javascript" src="js/jqplot.pieRenderer.js"></script> 
+	</body>
+</html>

@@ -1,0 +1,72 @@
+.class1 {
+	margin: 1%;
+	margin-top: 0%;
+	width: 99% !important;
+}
+
+.sap-desktop .sapMIBar.sapMHeader-CTX {
+	background-color: #679B0B !important; 
+}
+
+.header_toolbar.sapMBarChild.sapMLabel.sapMLabelMaxWidth.sapUiSelectable
+	{
+	color: #FFFFFF;
+	font-weight: 400;
+	font-size: 15px;
+	padding-right: 50%;
+}
+
+.forward.sapMBarChild.sapMImg {
+	padding-right: 15%;
+}
+
+.period_column.sapUiTv.sapUiTvAlignLeft.sapUiTvEmph {
+	width: 11%;
+}
+table,td,th
+{
+	  border-width: 0.6em;
+	  border-color:black;
+	  
+}
+
+.class2 {
+	width: 75% !important;
+	padding-left: 10%;
+	padding-top: 1%;
+}
+
+.s_symbol.sapMImg {
+	padding-left: 10%;
+	margin-top: 1%;
+}
+
+.budget_label {
+	padding-left: 3%;
+	padding-bottom: 1%;
+	font-weight: bold;
+}
+
+.toolbarHeader {
+	padding: 0;
+	font-weight: 400;
+	background: #679B0B !important;
+}
+
+.back_button.sapMBarChild.sapMImg.sapMTBShrinkItem {
+	padding-left: 47%;
+}
+
+.label_toolbar.sapMBarChild.sapMLabel.sapMLabelMaxWidth.sapUiSelectable
+	{
+	color: #FFFFFF;
+	font-size: 80%;
+}
+
+.bar1.sapMBar.sapMBar-CTX.sapMContent-CTX.sapMIBar.sapMIBar-CTX {
+	color: #FFFFFF;
+	height: 2rem;
+	background-color: #33B5E7;
+	margin-left: 1%;
+	width: 99%;
+}

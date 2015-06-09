@@ -1,0 +1,89 @@
+<core:View xmlns:core="sap.ui.core" xmlns:mvc="sap.ui.core.mvc" xmlns="sap.m" 
+		controllerName="com.sap.dashboard.view.distributionTable" xmlns:html="http://www.w3.org/1999/xhtml">
+	<Page>
+		<headerContent class="sap-desktop .sapMIBar.sapMHeader-CTX">
+			<Image src="img/img_back_main.jpg" width="4%" height="90%"
+				class="back_button_main" />
+			<Label xmlns="sap.m" class="header_toolbar" text="COST OF DELIVERY BUDGET"></Label>
+			<Image src="img/img_forward.jpg" width="5%" height="90%" class="forward" />
+
+		</headerContent>
+		<Image src="img/img_s_symbol.jpg" width="3%" height="90%" class="s_symbol" />
+		<Label xmlns="sap.m" class="budget_label" text="BUDGET ALLOCATION"></Label>
+		<SegmentedButton selectedButton="competitor">
+          <Button icon="sap-icon://taxi" press = "goToNextPage" />
+          <Button icon="sap-icon://lab" />
+          <Button icon="sap-icon://competitor" id="competitor" />
+        </SegmentedButton>
+		<content>
+			<Panel class="class2">
+				<headerToolbar>
+					<Toolbar height="2rem" class="toolbarHeader">
+						<Label xmlns="sap.m"
+							text="BUDGET UTILIZATION VIEW -WEEK WISE -RCTG FOR TRAVEL" class="label_toolbar" />
+						<Image src="img/img_back.jpg" width="4%" height="100%"
+							class="back_button" />
+						<Label xmlns="sap.m" text="Back" class="label_toolbar"></Label>
+					</Toolbar>
+				</headerToolbar>
+
+				<content>
+					<Bar class="bar1">
+						<contentLeft>
+							<Label xmlns="sap.m" text="DISTRUBUTION TABLE -Q4 - RCTG FOR TRAVEL"
+								class="label_toolbar" />
+						</contentLeft> <!-- sap.ui.core.Control -->
+					</Bar>
+					<Table id="tid" items="{JsonData>/dataOfWeek}" width="70%"
+						class="class1">
+						<columns height="9%">
+							<Column width="11%">
+								<TextView xmlns="sap.ui.commons" text="PERIOD" design="Bold" />
+							</Column>
+							<Column>
+								<TextView xmlns="sap.ui.commons" text="REVENUE BUDGET ($K)"
+									design="Bold" />
+							</Column>
+							<Column>
+								<TextView xmlns="sap.ui.commons" text="CONSUMPTION($K)"
+									design="Bold" />
+							</Column>
+							<Column>
+								<TextView xmlns="sap.ui.commons" text="UNUTILISED BUDGET ($K)"
+									design="Bold" />
+							</Column>
+							<Column>
+								<TextView xmlns="sap.ui.commons" text="PERCENTAGE CONSUMED(%)"
+									design="Bold" />
+							</Column>
+						</columns>
+
+						<!-- table data -->
+						<items>
+							<ColumnListItem>
+								<cells class="period_column">
+									<Text text="{JsonData>PERIOD}" />
+								</cells>
+								<cells>
+									<Text text="{JsonData>REVENUE_BUDGET}" />
+								</cells>
+								<cells>
+									<Text text="{JsonData>CONSUMPTION}" />
+								</cells>
+								<cells>
+									<Text text="{JsonData>UNUTILISED_BUDGET}" />
+								</cells>
+								<cells>
+									<Text text="{JsonData>PERCENTAGE_CONSUMED}" />
+								</cells>
+							</ColumnListItem>
+						</items>
+					</Table>
+
+				</content>
+			</Panel>
+
+
+		</content>
+	</Page>
+</core:View>

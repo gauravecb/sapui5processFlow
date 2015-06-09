@@ -1,0 +1,177 @@
+<core:View xmlns:core="sap.ui.core" xmlns:mvc="sap.ui.core.mvc" xmlns:js = "com.sap.dashboard.js"
+	xmlns:l="sap.ui.layout" xmlns="sap.m" xmlns:view="com.sap.dashboard.view"
+	controllerName="com.sap.dashboard.view.allocationBudget" xmlns:html="http://www.w3.org/1999/xhtml">
+	<Page>
+		<headerContent class="sap-desktop .sapMIBar.sapMHeader-CTX">
+			<Image src="img/img_back_main.jpg" width="4%" height="90%"
+				class="back_button_main" />
+			<Label xmlns="sap.m" class="header_toolbar" text="COST OF DELIVERY BUDGET"></Label>
+			<Image src="img/img_forward.jpg" width="5%" height="90%" class="forward" />
+
+		</headerContent>
+		<Image src="img/img_s_symbol.jpg" width="3%" height="90%" class="s_symbol" />
+		<Label xmlns="sap.m" class="budget_label" text="BUDGET ALLOCATION"></Label>
+		<SegmentedButton selectedButton="competitor">
+			<Button icon="sap-icon://taxi" />
+			<Button icon="sap-icon://lab" />
+			<Button icon="sap-icon://competitor" id="competitor" />
+		</SegmentedButton>
+		<content>
+			<Panel class="class2" width="100%">
+				<headerToolbar>
+					<Toolbar height="2rem" class="toolbarHeader">
+						<Label xmlns="sap.m" text="BUDGET ALLOCATION SL HEAD VIEW"
+							class="label_toolbar" />
+						<Image src="img/img_back.jpg" width="4%" height="100%"
+							class="back_button" />
+						<Label xmlns="sap.m" text="Back" class="label_toolbar"></Label>
+					</Toolbar>
+				</headerToolbar>
+
+				<content>
+
+					<l:Grid hSpacing="1" defaultSpan="L6 M6 S10">
+						<l:content>
+							<VBox width="100%" alignItems="Start" justifyContent="Center">
+								<items>
+									<VBox width="100%">
+										<items>
+											<Select width="170px">
+												<core:Item key="Hello" text="Hello" />
+											</Select>
+										</items>
+									</VBox>
+									<VBox width="100%">
+										<items>
+											<Select width="170px">
+												<core:Item key="Hello" text="Hello" />
+											</Select>
+										</items>
+									</VBox>
+									<VBox width="100%">
+										<items>
+											<Select width="170px">
+												<core:Item key="Hello" text="Hello" />
+											</Select>
+										</items>
+									</VBox>
+								</items>
+								<layoutData>
+									<l:GridData span="L3 M4 S8" linebreakL="false"
+										linebreakM="true" linebreakS="true" />
+								</layoutData>
+							</VBox>
+							<HBox alignItems="Center" justifyContent="Center">
+								<items>
+									<view:customProcessFlow id="myStat1"
+										dimension="100" text="50%" info="" width="13" fontsize="10"
+										percentValue="50" forgroundColor="#7ea568" backgroundColor="#eee">
+									</view:customProcessFlow>
+								</items>
+								<layoutData>
+									<l:GridData span="L2 M4 S8" linebreakL="false"
+										linebreakM="true" linebreakS="true" />
+								</layoutData>
+							</HBox>
+							<HBox alignItems="Center" justifyContent="Center">
+								<items>
+									<view:customProcessFlow id="myStat2"
+										dimension="100" text="70%" info="" width="13" fontsize="10"
+										percentValue="70" forgroundColor="#7ea568" backgroundColor="#eee">
+									</view:customProcessFlow>
+								</items>
+								<layoutData>
+									<l:GridData span="L2 M4 S8" linebreakL="false"
+										linebreakM="false" linebreakS="true" />
+								</layoutData>
+							</HBox>
+							<HBox alignItems="Center" justifyContent="Center">
+								<items>
+									<view:customProcessFlow id="myStat3"
+										dimension="100" text="80%" info="" width="13" fontsize="10"
+										percentValue="80" forgroundColor="#7ea568" backgroundColor="#eee">
+									</view:customProcessFlow>
+								</items>
+								<layoutData>
+									<l:GridData span="L2 M4 S8" linebreakL="false"
+										linebreakM="false" linebreakS="true" />
+								</layoutData>
+							</HBox>
+							<HBox alignItems="Center" justifyContent="Center">
+								<items>
+									<view:customProcessFlow id="myStat4"
+										dimension="100" text="10%" info="" width="13" fontsize="10"
+										percentValue="10" forgroundColor="#7ea568" backgroundColor="#eee">
+									</view:customProcessFlow>
+								</items>
+								<layoutData>
+									<l:GridData span="L2 M4 S8" linebreakL="false"
+										linebreakM="false" linebreakS="true" />
+								</layoutData>
+							</HBox>
+
+
+						</l:content>
+					</l:Grid>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+					<!-- <FlexBox height="150px" width="100%" alignItems="Start" justifyContent="Start"> 
+						<items> <VBox width="19%" alignItems="Start" justifyContent="Start"> <items> 
+						<VBox> <items> <Select width="170px"> <core:Item key="Hello" text="Hello" 
+						/> </Select> </items> </VBox> <VBox> <items> <Select width="170px"> <core:Item 
+						key="Hello" text="Hello" /> </Select> </items> </VBox> <VBox> <items> <Select 
+						width="170px"> <core:Item key="Hello" text="Hello" /> </Select> </items> 
+						</VBox> </items> </VBox> <HBox width="18%" alignItems="Center" justifyContent="Center"> 
+						<items> <view:customProcessFlow id="myStat1" dimension="100" text="50%" info="" 
+						width="13" fontsize="10" percentValue="50" forgroundColor="#7ea568" backgroundColor="#eee"> 
+						</view:customProcessFlow> </items> </HBox> <HBox width="18%" alignItems="Center" 
+						justifyContent="Center"> <items> <view:customProcessFlow id="myStat2" dimension="100" 
+						text="50%" info="" width="13" fontsize="10" percentValue="50" forgroundColor="#7ea568" 
+						backgroundColor="#eee"> </view:customProcessFlow> </items> </HBox> <HBox 
+						width="18%" alignItems="Center" justifyContent="Center"> <items> <view:customProcessFlow 
+						id="myStat3" dimension="100" text="50%" info="" width="13" fontsize="10" 
+						percentValue="50" forgroundColor="#7ea568" backgroundColor="#eee"> </view:customProcessFlow> 
+						</items> </HBox> <HBox width="18%" alignItems="Center" justifyContent="Center"> 
+						<items> <view:customProcessFlow id="myStat4" dimension="100" text="50%" info="" 
+						width="13" fontsize="10" percentValue="50" forgroundColor="#7ea568" backgroundColor="#eee"> 
+						</view:customProcessFlow> </items> </HBox> </items> </FlexBox> -->
+				</content>
+			</Panel>
+			<Panel class="class2">
+				<headerToolbar>
+					<Toolbar height="2rem" class="toolbarHeader">
+						<Label xmlns="sap.m" text="BUDGET ALLOCATION SL HEAD VIEW"
+							class="label_toolbar" />
+						<Image src="img/img_back.jpg" width="4%" height="100%"
+							class="back_button" />
+						<Label xmlns="sap.m" text="Back" class="label_toolbar"></Label>
+					</Toolbar>
+				</headerToolbar>
+				<content>
+
+					<html:div id="chart3" style="margin-top:20px; margin-left:20px; width:460px; height:300px;">
+					</html:div>
+				</content>
+			</Panel>
+
+		</content>
+	</Page>
+</core:View>

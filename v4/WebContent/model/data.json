@@ -1,0 +1,68 @@
+{
+"dataOfWeek" : [
+     {
+      "PERIOD" : "WEEK1",
+      "REVENUE_BUDGET" : "0.00",
+      "CONSUMPTION":"0.00",
+      "UNUTILISED_BUDGET":"0.00",
+  	  "PERCENTAGE_CONSUMED":"0.00"
+     },
+      {
+      "PERIOD" : "WEEK2",
+      "REVENUE_BUDGET" : "0.00",
+      "CONSUMPTION":"0.00",
+      "UNUTILISED_BUDGET":"0.00",
+  	  "PERCENTAGE_CONSUMED":"0.00"
+     },
+      {
+      "PERIOD" : "WEEK3",
+      "REVENUE_BUDGET" : "0.00",
+      "CONSUMPTION":"0.00",
+      "UNUTILISED_BUDGET":"0.00",
+  	  "PERCENTAGE_CONSUMED":"0.00"
+     },
+      {
+      "PERIOD" : "WEEK4",
+      "REVENUE_BUDGET" : "0.00",
+      "CONSUMPTION":"0.00",
+      "UNUTILISED_BUDGET":"0.00",
+  	  "PERCENTAGE_CONSUMED":"0.00"
+     },
+      {
+      "PERIOD" : "WEEK5",
+      "REVENUE_BUDGET" : "0.00",
+      "CONSUMPTION":"0.00",
+      "UNUTILISED_BUDGET":"0.00",
+  	  "PERCENTAGE_CONSUMED":"0.00"
+     },
+      {
+      "PERIOD" : "WEEK6",
+      "REVENUE_BUDGET" : "0.00",
+      "CONSUMPTION":"0.00",
+      "UNUTILISED_BUDGET":"0.00",
+  	  "PERCENTAGE_CONSUMED":"0.00"
+     },
+      {
+      "PERIOD" : "WEEK7",
+      "REVENUE_BUDGET" : "0.00",
+      "CONSUMPTION":"0.00",
+      "UNUTILISED_BUDGET":"0.00",
+  	  "PERCENTAGE_CONSUMED":"0.00"
+     },
+      {
+      "PERIOD" : "WEEK8",
+      "REVENUE_BUDGET" : "0.00",
+      "CONSUMPTION":"0.00",
+      "UNUTILISED_BUDGET":"0.00",
+  	  "PERCENTAGE_CONSUMED":"0.00"
+     },
+      {
+      "PERIOD" : "WEEK9",
+      "REVENUE_BUDGET" : "0.00",
+      "CONSUMPTION":"0.00",
+      "UNUTILISED_BUDGET":"0.00",
+  	  "PERCENTAGE_CONSUMED":"0.00"
+     }
+     
+         ]
+ }
