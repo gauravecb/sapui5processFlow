@@ -1,1 +1,846 @@
+  METHOD /iwbep/if_mgw_appl_srv_runtime~create_stream.
 
+    DATA: gc_msg_id              TYPE rsdag-arbgb VALUE 'ZPAPM_MESSAGES',
+          lc_ind_val_yes         TYPE ztpapm_hub_cc-del_ind VALUE 'YES',
+          lc_ind_val_no          TYPE ztpapm_hub_cc-del_ind VALUE 'NO',
+          lc_fgcr_cost_shared    TYPE ztpapm_hub_cc-fgcr_cost VALUE 'SHARED',
+          lc_fgcr_cost_dedicated TYPE ztpapm_hub_cc-fgcr_cost VALUE 'DEDICATED',
+          lc_currco_usd          TYPE fins_currk VALUE 'USD',
+          lc_cc_class_prod       TYPE c LENGTH '10' VALUE 'PRODUCT',
+          lc_cc_class_supp       TYPE c LENGTH '10' VALUE 'SUPPORT',
+          lc_cc_class_seg        TYPE c LENGTH '10' VALUE 'SEGMENT',
+          lc_tab_name_hubcc      TYPE sy-msgv1 VALUE 'ZTPAPM_HUB_CC',
+
+          lc_msgid_023           TYPE rsdag-messnum VALUE '023', "should not exceed 100
+          lc_msgid_024           TYPE rsdag-messnum VALUE '024', "should not be negative
+          lc_tab_name_markup     TYPE sy-msgv1 VALUE 'ZTPAPM_MARKUP',
+
+          lc_tab_name_disallow   TYPE sy-msgv1 VALUE 'ZTPAPM_DISALLOW'.
+
+    TYPES: BEGIN OF ty_disallow,
+             row          TYPE string,
+             bukrs        TYPE ztpapm_disallow-bukrs,
+             kostl        TYPE ztpapm_disallow-kostl,
+             cost_typ     TYPE ztpapm_disallow-cost_typ,
+             disallow_per TYPE ztpapm_disallow-disallow_per,
+             version      TYPE ztpapm_disallow-version,
+             del_ind      TYPE ztpapm_disallow-del_ind,
+             comments     TYPE ztpapm_disallow-comments,
+             created_on   TYPE ztpapm_disallow-created_on,
+             created_at   TYPE ztpapm_disallow-created_at,
+             created_by   TYPE ztpapm_disallow-created_by,
+           END OF ty_disallow,
+           tty_disallow TYPE TABLE OF ty_disallow,
+
+           BEGIN OF ty_markup,
+             row           TYPE string,
+             markup_period TYPE ztpapm_markup-markup_period,
+             markup_rate   TYPE ztpapm_markup-markup_rate,
+             del_ind       TYPE ztpapm_markup-del_ind,
+             comments      TYPE ztpapm_markup-comments,
+             created_on    TYPE ztpapm_markup-created_on,
+             created_at    TYPE ztpapm_markup-created_at,
+             created_by    TYPE ztpapm_markup-created_by,
+           END OF ty_markup,
+           tty_markup TYPE TABLE OF ty_markup,
+
+           BEGIN OF ty_hubcc,
+             row            TYPE  string,
+             bukrs          TYPE  ztpapm_hub_cc-bukrs,
+             prctr          TYPE  ztpapm_hub_cc-prctr,
+             cost_typ       TYPE  ztpapm_hub_cc-cost_typ,
+             cost_cat       TYPE  ztpapm_hub_cc-cost_cat,
+             kostl          TYPE  ztpapm_hub_cc-kostl,
+             cc_class       TYPE ztpapm_hub_cc-cc_classify,
+             cc_desc        TYPE  ztpapm_hub_cc-cc_desc,
+             bus_desc_l1    TYPE  ztpapm_hub_cc-bus_desc_l1,
+             bus_desc_l2    TYPE  ztpapm_hub_cc-bus_desc_l2,
+             bus_desc_l3    TYPE  ztpapm_hub_cc-bus_desc_l3,
+             bus_desc_l4    TYPE  ztpapm_hub_cc-bus_desc_l4,
+             bus_desc_l5    TYPE  ztpapm_hub_cc-bus_desc_l5,
+             bus_desc_l6    TYPE  ztpapm_hub_cc-bus_desc_l6,
+             bus_desc_l7    TYPE  ztpapm_hub_cc-bus_desc_l7,
+             bus_desc_l8    TYPE  ztpapm_hub_cc-bus_desc_l8,
+             bus_desc_l9    TYPE  ztpapm_hub_cc-bus_desc_l9,
+             bus_desc_l10   TYPE  ztpapm_hub_cc-bus_desc_l10,
+             bus_desc_l11   TYPE  ztpapm_hub_cc-bus_desc_l11,
+             bus_desc_l12   TYPE  ztpapm_hub_cc-bus_desc_l12,
+             zzoploc        TYPE  ztpapm_hub_cc-zzoploc,
+             per_rch        TYPE  ztpapm_hub_cc-per_rch,
+             region         TYPE  ztpapm_hub_cc-region,
+             alloc_driver   TYPE  ztpapm_hub_cc-alloc_driver,
+             cert_ref       TYPE  ztpapm_hub_cc-cert_ref,
+             extrapolate    TYPE  ztpapm_hub_cc-extrapolate,
+             fgcr_cost      TYPE  ztpapm_hub_cc-fgcr_cost,
+             dedicated_per  TYPE  ztpapm_hub_cc-dedicated_per,
+             curr_code      TYPE ztpapm_hub_cc-curr_code,
+             dedicated_usd  TYPE  ztpapm_hub_cc-dedicated_usd,
+             recipient_code TYPE  ztpapm_hub_cc-recipient_code,
+             fgcr_year      TYPE  ztpapm_hub_cc-fgcr_year,
+             del_ind        TYPE  ztpapm_hub_cc-del_ind,
+             comments       TYPE  ztpapm_hub_cc-comments,
+             created_on     TYPE  ztpapm_hub_cc-created_on,
+             created_at     TYPE  ztpapm_hub_cc-created_at,
+             created_by     TYPE  ztpapm_hub_cc-created_by,
+           END OF ty_hubcc.
+
+
+    DATA : numberofcolumns   TYPE i,
+           row               TYPE int4 VALUE 1,
+           lt_markup         TYPE tty_markup,
+           lt_markup_conv    TYPE tty_markup,
+           lw_markup         TYPE ty_markup,
+           lt_markup_tab     TYPE STANDARD TABLE OF ztpapm_markup,
+           lt_markup_tab_dup TYPE STANDARD TABLE OF ztpapm_markup,
+           lt_err_log        TYPE TABLE OF bapiret2,
+           lw_err_log        TYPE bapiret2,
+           lt_messages       TYPE STANDARD TABLE OF t100,
+           lw_messages       TYPE t100,
+
+           lo_msg            TYPE REF TO /iwbep/if_message_container,
+           lv_msg            TYPE string,
+           lv_timestamp      TYPE timestamp,
+           lv_err_msgnum     TYPE rsdag-messnum.
+
+    "process excel file into internal table
+    DATA : lt_hubcc            TYPE TABLE OF ty_hubcc, "ztpapm_hub_cc,
+           lw_hubcc            TYPE ty_hubcc,
+           lt_hub_tab          TYPE STANDARD TABLE OF ztpapm_hub_cc,
+           lt_hub_tab_dup      TYPE STANDARD TABLE OF ztpapm_hub_cc,
+           lt_disallow         TYPE tty_disallow,
+           lw_disallow         TYPE ty_disallow,
+           lt_disallow_tab     TYPE STANDARD TABLE OF ztpapm_disallow,
+           lt_disallow_tab_dup TYPE STANDARD TABLE OF ztpapm_disallow.
+
+    FIELD-SYMBOLS : <fs_excel> TYPE table,
+                    <field>    TYPE any,
+                    <row>      TYPE any.
+
+    "Error Handling - all error messages
+    SELECT *
+           FROM t100
+           INTO TABLE @lt_messages
+           WHERE arbgb = @gc_msg_id
+             AND sprsl = @sy-langu.
+    IF lt_messages[] IS NOT INITIAL.
+      SORT lt_messages BY msgnr ASCENDING.
+    ENDIF.
+
+    "Co Code master data for validation
+    SELECT bukrs FROM t001
+           INTO TABLE @DATA(lt_bukrs).
+
+    "Cost Type
+    SELECT cost_typ FROM ztpapm_cost_typ
+           INTO TABLE @DATA(lt_cost_typ).
+
+    "Cost Category for validation
+    SELECT cost_cat FROM ztpapm_cost_cat
+           INTO TABLE @DATA(lt_cost_cat).
+
+    "Operating Location master data for validation
+    SELECT zzoploc FROM zfioperloc
+           INTO TABLE @DATA(lt_op_loc).
+
+    "Allocation Driver master data for validation
+    SELECT alloc_driver FROM ztpapm_alloc_drv
+           INTO TABLE @DATA(lt_alloc_dr).
+
+    "Certificate refernce master data for validation
+    SELECT cert_ref FROM ztpapm_cert_ref
+           INTO TABLE @DATA(lt_cert_ref).
+
+    "ztpapm_region
+    SELECT region FROM ztpapm_region
+           INTO TABLE @DATA(lt_region).
+
+    CASE iv_entity_name.
+      WHEN 'UploadHUBCC'.
+
+        DATA(excel) = NEW cl_fdt_xl_spreadsheet( document_name = 'file.xlsx'
+                                                 xdocument = is_media_resource-value ).
+
+        excel->if_fdt_doc_spreadsheet~get_worksheet_names( IMPORTING worksheet_names = DATA(worksheets) ).
+
+        DATA(firstworksheet_data) = excel->if_fdt_doc_spreadsheet~get_itab_from_worksheet( worksheets[ 1 ] ).
+
+        ASSIGN firstworksheet_data->* TO <fs_excel> .
+        numberofcolumns = 19.
+        "Row 1 - Headings for the upload template
+        LOOP AT <fs_excel> ASSIGNING <row> FROM 2 .
+          row = row + 1.
+          lw_hubcc-row = row.
+          "processing columns
+          DO numberofcolumns TIMES.
+            ASSIGN COMPONENT sy-index OF STRUCTURE <row> TO <field> .
+            IF sy-subrc = 0 .
+              CASE sy-index .
+                WHEN '1'.
+                  lw_hubcc-bukrs         = <field>.
+                WHEN '2'.
+                  lw_hubcc-prctr         = <field>.
+                  IF lw_hubcc-prctr IS NOT INITIAL.
+                    lw_hubcc-prctr = |{ lw_hubcc-prctr  ALPHA = IN }|.
+                  ENDIF.
+                WHEN '3'.
+                  lw_hubcc-cost_typ      = <field>.
+                  TRANSLATE lw_hubcc-cost_typ TO UPPER CASE.
+                WHEN '4'.
+                  lw_hubcc-cost_cat      = <field>.
+                WHEN '5'.
+                  lw_hubcc-kostl         = <field>.
+                  IF lw_hubcc-kostl IS NOT INITIAL.
+                    lw_hubcc-kostl = |{ lw_hubcc-kostl  ALPHA = IN }|.
+                  ENDIF.
+                WHEN '6'.
+                  lw_hubcc-zzoploc        = <field>.
+                WHEN '7'.
+                  lw_hubcc-cc_class       = <field>.
+                  TRANSLATE lw_hubcc-cc_class TO UPPER CASE.
+                WHEN '8'.
+                  lw_hubcc-per_rch        = <field>.
+                WHEN '9'.
+                  lw_hubcc-region         = <field>.
+                  TRANSLATE lw_hubcc-region TO UPPER CASE.
+                WHEN '10'.
+                  lw_hubcc-alloc_driver   = <field>.
+                  TRANSLATE lw_hubcc-alloc_driver TO UPPER CASE.
+                WHEN '11'.
+                  lw_hubcc-cert_ref       = <field>.
+                  TRANSLATE lw_hubcc-cert_ref TO UPPER CASE.
+                WHEN '12'.
+                  lw_hubcc-extrapolate    = <field>.
+                  TRANSLATE lw_hubcc-extrapolate TO UPPER CASE.
+                WHEN '13'.
+                  lw_hubcc-fgcr_cost       = <field>.
+                  TRANSLATE lw_hubcc-fgcr_cost TO UPPER CASE.
+                WHEN '14'.
+                  lw_hubcc-dedicated_per   = <field>.
+                  lw_hubcc-curr_code       = lc_currco_usd.
+                WHEN '15'.
+                  lw_hubcc-dedicated_usd   = <field>.
+                  lw_hubcc-curr_code       = lc_currco_usd.
+                WHEN '16'.
+                  lw_hubcc-recipient_code  = <field>.
+                WHEN '17'.
+                  lw_hubcc-fgcr_year       = <field>.
+                WHEN '18'.
+                  lw_hubcc-del_ind         = lc_ind_val_no. "By default value goes as No
+                WHEN '19'.
+                  lw_hubcc-comments        = <field>.
+              ENDCASE.
+            ENDIF.
+          ENDDO .
+
+          lw_hubcc-created_on = sy-datum.
+          GET TIME STAMP FIELD lv_timestamp.
+          lw_hubcc-created_at = lv_timestamp.
+          lw_hubcc-created_by = sy-uname.
+
+          APPEND lw_hubcc TO lt_hubcc.
+          CLEAR lw_hubcc.
+        ENDLOOP.
+
+        IF lt_hubcc[] IS NOT INITIAL.
+          "Profit Center for validation
+          SORT lt_hubcc BY prctr ASCENDING.
+          SELECT prctr FROM cepc
+                 INTO TABLE @DATA(lt_prctr)
+                 FOR ALL ENTRIES IN @lt_hubcc
+                 WHERE prctr = @lt_hubcc-prctr
+                  AND datbi GE @sy-datum
+                  AND datab LE @sy-datum.
+          IF lt_prctr[] IS NOT INITIAL.
+            SORT lt_prctr BY prctr ASCENDING.
+          ENDIF.
+
+          "S4 Cost Center master data for validation
+          SORT lt_hubcc BY bukrs prctr kostl zzoploc ASCENDING.
+          SELECT bukrs,
+                 kostl,
+                 prctr,
+                 zzoploc,
+                 zzbizdsk
+                 FROM zrtc_bizdsk_der2
+                 INTO TABLE @DATA(lt_cc)
+                 FOR ALL ENTRIES IN @lt_hubcc
+                 WHERE bukrs = @lt_hubcc-bukrs
+                   AND prctr = @lt_hubcc-prctr
+                   AND kostl = @lt_hubcc-kostl
+                   AND zzoploc = @lt_hubcc-zzoploc.
+          IF lt_cc[] IS NOT INITIAL.
+            SORT lt_cc BY kostl ASCENDING.
+            "Get all CCs with desription of every CC level for autopopulation
+            SELECT a~kostl,
+                   a~zzbizdsk AS business_cc ,
+                   b~ccl1_desc,
+                   b~ccl2_desc,
+                   b~ccl3_desc,
+                   b~ccl4_desc,
+                   b~ccl5_desc,
+                   b~ccl6_desc,
+                   b~ccl7_desc,
+                   b~ccl8_desc,
+                   b~ccl9_desc,
+                   b~ccl10_desc,
+                   b~ccl11_desc,
+                   b~Business_CC_desc,
+                   c~ltext
+                   FROM zrtcv_bizdesk_der AS a
+                   LEFT OUTER JOIN zcvpapm_bizcchier_5 AS b
+                   ON a~zzbizdsk = b~business_cc
+                   LEFT OUTER JOIN cskt AS c
+                   ON a~kostl = c~kostl
+                   AND c~spras = @sy-langu
+                   FOR ALL ENTRIES IN  @lt_cc
+                   WHERE a~kostl = @lt_cc-kostl
+                   INTO TABLE @DATA(lt_cc_desc).
+            IF lt_cc_desc[] IS NOT INITIAL.
+              SORT lt_cc_desc BY business_cc ASCENDING.
+            ENDIF.
+          ENDIF.
+
+
+          "S4 CC validation + Business CC autopopulate
+          SORT lt_hubcc BY kostl ASCENDING.
+          LOOP AT lt_hubcc ASSIGNING FIELD-SYMBOL(<fs_hubcc>).
+            DATA(lw_cc) = VALUE #( lt_cc[ kostl = <fs_hubcc>-kostl ] OPTIONAL ).
+            IF lw_cc-zzbizdsk IS NOT INITIAL.
+              DATA(lw_cc_desc) = VALUE #( lt_cc_desc[ business_cc = lw_cc-zzbizdsk ] OPTIONAL ).
+              IF lw_cc_desc IS NOT INITIAL.
+                <fs_hubcc>-cc_desc      = lw_cc_desc-ltext.
+                <fs_hubcc>-bus_desc_l1  = lw_cc_desc-ccl1_desc.
+                <fs_hubcc>-bus_desc_l2  = lw_cc_desc-ccl2_desc.
+                <fs_hubcc>-bus_desc_l3  = lw_cc_desc-ccl3_desc.
+                <fs_hubcc>-bus_desc_l4  = lw_cc_desc-ccl4_desc.
+                <fs_hubcc>-bus_desc_l5  = lw_cc_desc-ccl5_desc.
+                <fs_hubcc>-bus_desc_l6  = lw_cc_desc-ccl6_desc.
+                <fs_hubcc>-bus_desc_l7  = lw_cc_desc-ccl7_desc.
+                <fs_hubcc>-bus_desc_l8  = lw_cc_desc-ccl8_desc.
+                <fs_hubcc>-bus_desc_l9  = lw_cc_desc-ccl9_desc.
+                <fs_hubcc>-bus_desc_l10 = lw_cc_desc-ccl10_desc.
+                <fs_hubcc>-bus_desc_l11 = lw_cc_desc-ccl11_desc.
+                "<fs_hubcc>-bus_desc_l12 = lw_cc_desc-business_cc_desc.
+              ENDIF.
+            ENDIF.
+            CLEAR: lw_cc, lw_cc_desc.
+          ENDLOOP.
+
+*          DATA: lv_msg TYPE string.
+          CLEAR: lv_msg.
+
+          LOOP AT lt_hubcc ASSIGNING <fs_hubcc>.
+            IF <fs_hubcc>-fgcr_year IS INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = '029' ] OPTIONAL ).
+              CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = '029' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            IF <fs_hubcc>-del_ind IS INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = '029' ] OPTIONAL ).
+              CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = '029' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Valid Company Code
+            DATA(lw_bukrs)    = VALUE #( lt_bukrs[ bukrs = <fs_hubcc>-bukrs ] OPTIONAL ).
+            IF lw_bukrs-bukrs IS INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = '001' ] OPTIONAL ).
+              REPLACE '&1' IN lw_messages-text WITH <fs_hubcc>-bukrs.
+              CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = '001' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Valid Profit Center
+            DATA(lw_prctr)    = VALUE #( lt_prctr[ prctr = <fs_hubcc>-prctr ] OPTIONAL ).
+            IF lw_prctr-prctr IS INITIAL.
+              REPLACE '&1' IN lw_messages-text WITH <fs_hubcc>-prctr.
+              CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+              lw_messages = VALUE #( lt_messages[ msgnr = '005' ] OPTIONAL ).
+              APPEND VALUE #( id = gc_msg_id number = '005' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Valid Cost Type
+            DATA(lw_cost_typ) = VALUE #( lt_cost_typ[ cost_typ = <fs_hubcc>-cost_typ ] OPTIONAL ).
+            IF lw_cost_typ-cost_typ IS INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = '003' ] OPTIONAL ).
+              REPLACE '&1' IN lw_messages-text WITH <fs_hubcc>-cost_typ.
+              CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = '003' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Valid Cost Category
+            DATA(lw_cost_cat) = VALUE #( lt_cost_cat[ cost_cat = <fs_hubcc>-cost_cat ] OPTIONAL ).
+            IF lw_cost_cat-cost_cat IS INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = '002' ] OPTIONAL ).
+              REPLACE '&1' IN lw_messages-text WITH <fs_hubcc>-cost_cat.
+              CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = '002' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Valid Cost Center
+            DATA(lw_kostl)    = VALUE #( lt_cc[ kostl = <fs_hubcc>-kostl ] OPTIONAL ).
+            IF lw_kostl-kostl IS INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = '004' ] OPTIONAL ).
+              REPLACE '&1' IN lw_messages-text WITH <fs_hubcc>-kostl.
+              CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = '004' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Valid Cost Center Classification
+            CASE <fs_hubcc>-cc_class.
+              WHEN lc_cc_class_prod.
+              WHEN lc_cc_class_seg.
+              WHEN lc_cc_class_supp.
+              WHEN OTHERS.
+                lw_messages = VALUE #( lt_messages[ msgnr = '021' ] OPTIONAL ).
+                CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lv_msg SEPARATED BY space.
+                APPEND VALUE #( id = gc_msg_id number = '021' type = 'E' message = lv_msg ) TO lt_err_log.
+                CLEAR: lv_msg.
+            ENDCASE.
+            "Valid Operating Location
+            IF <fs_hubcc>-zzoploc IS NOT INITIAL.
+              DATA(lw_op_loc)   = VALUE #( lt_op_loc[ zzoploc = <fs_hubcc>-zzoploc ] OPTIONAL ).
+              IF lw_op_loc-zzoploc IS INITIAL.
+                lw_messages = VALUE #( lt_messages[ msgnr = '008' ] OPTIONAL ).
+                REPLACE '&1' IN lw_messages-text WITH <fs_hubcc>-zzoploc.
+                CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+                APPEND VALUE #( id = gc_msg_id number = '008' type = 'E' message = lw_messages-text ) TO lt_err_log.
+                CLEAR: lv_msg.
+              ENDIF.
+            ENDIF.
+            "Valid Allocation Driver
+            DATA(lw_alloc_dr) = VALUE #( lt_alloc_dr[ alloc_driver = <fs_hubcc>-alloc_driver ] OPTIONAL ).
+            IF lw_alloc_dr-alloc_driver IS INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = '007' ] OPTIONAL ).
+              REPLACE '&1' IN lw_messages-text WITH <fs_hubcc>-alloc_driver.
+              CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = '007' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Validate Region
+            DATA(lw_region) = VALUE #( lt_region[ region = <fs_hubcc>-region ] OPTIONAL ).
+            IF lw_region-region IS INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = '022' ] OPTIONAL ).
+              REPLACE '&1' IN lw_messages-text WITH <fs_hubcc>-region.
+              CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = '022' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Valid Certificate Reference
+            DATA(lw_cert_ref) = VALUE #( lt_cert_ref[ cert_ref = <fs_hubcc>-cert_ref ] OPTIONAL ).
+            IF lw_cert_ref-cert_ref IS INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = '006' ] OPTIONAL ).
+              REPLACE '&1' IN lw_messages-text WITH <fs_hubcc>-cert_ref.
+              CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = '006' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Extrapolate - Yes or No
+            CASE <fs_hubcc>-extrapolate.
+              WHEN lc_ind_val_yes.
+              WHEN lc_ind_val_no.
+              WHEN OTHERS.
+                lw_messages = VALUE #( lt_messages[ msgnr = '009' ] OPTIONAL ).
+                CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+                APPEND VALUE #( id = gc_msg_id number = '009' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDCASE.
+            "FGCR Cost - Shared/Dedicated
+            CASE <fs_hubcc>-fgcr_cost.
+              WHEN lc_fgcr_cost_shared.
+                IF <fs_hubcc>-dedicated_per IS NOT INITIAL OR <fs_hubcc>-dedicated_usd IS NOT INITIAL
+                  OR <fs_hubcc>-recipient_code IS NOT INITIAL.
+                  lw_messages = VALUE #( lt_messages[ msgnr = '016' ] OPTIONAL ).
+                  CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lv_msg SEPARATED BY space.
+                  APPEND VALUE #( id = gc_msg_id number = '016' type = 'E' message = lv_msg ) TO lt_err_log.
+                  CLEAR: lv_msg.
+                ENDIF.
+              WHEN lc_fgcr_cost_dedicated.
+                IF <fs_hubcc>-dedicated_per IS NOT INITIAL AND <fs_hubcc>-dedicated_usd IS NOT INITIAL.
+                  lw_messages = VALUE #( lt_messages[ msgnr = '015' ] OPTIONAL ).
+                  CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lv_msg SEPARATED BY space.
+                  APPEND VALUE #( id = gc_msg_id number = '015' type = 'E' message = lv_msg ) TO lt_err_log.
+                  CLEAR: lv_msg.
+                ENDIF.
+                "Valid Recipient Company Code
+                DATA(lw_rbukrs)   = VALUE #( lt_bukrs[ bukrs = <fs_hubcc>-recipient_code ] OPTIONAL ).
+                IF lw_rbukrs-bukrs IS INITIAL.
+                  lw_messages = VALUE #( lt_messages[ msgnr = '011' ] OPTIONAL ).
+                  REPLACE '&1' IN lw_messages-text WITH <fs_hubcc>-recipient_code.
+                  CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+                  APPEND VALUE #( id = gc_msg_id number = '011' type = 'E' message = lw_messages-text ) TO lt_err_log.
+                ENDIF.
+              WHEN OTHERS.
+                lw_messages = VALUE #( lt_messages[ msgnr = '012' ] OPTIONAL ).
+                CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+                APPEND VALUE #( id = gc_msg_id number = '012' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDCASE.
+            "Deletion Indicator
+            CASE <fs_hubcc>-del_ind.
+              WHEN lc_ind_val_no.
+              WHEN lc_ind_val_yes.
+                lw_messages = VALUE #( lt_messages[ msgnr = '017' ] OPTIONAL ).
+                CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lv_msg SEPARATED BY space.
+                APPEND VALUE #( id = gc_msg_id number = '017' type = 'E' message = lv_msg ) TO lt_err_log.
+                CLEAR: lv_msg.
+              WHEN OTHERS.
+                lw_messages = VALUE #( lt_messages[ msgnr = '014' ] OPTIONAL ).
+                CONCATENATE lw_messages-text '[ Row' <fs_hubcc>-row ']' INTO lw_messages-text SEPARATED BY space.
+                APPEND VALUE #( id = gc_msg_id number = '014' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDCASE.
+          ENDLOOP.
+
+          IF lt_err_log[] IS NOT INITIAL.
+
+            CALL METHOD me->/iwbep/if_mgw_conv_srv_runtime~get_message_container
+              RECEIVING
+                ro_message_container = lo_msg.
+            IF lo_msg IS BOUND.
+              CALL METHOD lo_msg->add_messages_from_bapi
+                EXPORTING
+                  it_bapi_messages          = lt_err_log                " Return parameter table
+                  iv_add_to_response_header = abap_true.       " Flag for adding or not the message to the response header
+            ENDIF.
+          ELSE.
+
+            lt_hub_tab[] = CORRESPONDING #( lt_hubcc ).
+            lt_hub_tab_dup[] = lt_hub_tab[].
+
+            DELETE ADJACENT DUPLICATES FROM lt_hub_tab_dup
+            COMPARING bukrs prctr cost_typ cost_cat kostl.
+            IF sy-subrc EQ 0.
+              lw_messages = VALUE #( lt_messages[ msgnr = '020' ] OPTIONAL ).
+              mo_context->get_message_container( )->add_message(
+                EXPORTING
+                  iv_msg_type               = /iwbep/cl_cos_logger=>info
+                  iv_msg_id                 = gc_msg_id
+                  iv_msg_number             = 020
+                  iv_add_to_response_header = abap_true       " Flag for adding or not the message to the response header
+               ).
+            ENDIF.
+
+            SELECT * FROM ztpapm_hub_cc
+                     INTO TABLE @DATA(lt_existing)
+                     FOR ALL ENTRIES IN @lt_hub_tab
+                     WHERE bukrs = @lt_hub_tab-bukrs
+                       AND kostl = @lt_hub_tab-kostl.
+            IF lt_existing[] IS NOT INITIAL.
+              mo_context->get_message_container( )->add_message(
+              EXPORTING
+                iv_msg_type               = /iwbep/cl_cos_logger=>error
+                iv_msg_id                 = gc_msg_id
+                iv_msg_number             = 019
+                iv_msg_v1                 = lc_tab_name_hubcc                  " Message Variable
+                iv_add_to_response_header = abap_true  ).      " Flag for adding or not the message to the response header).
+            ELSE.
+              MODIFY ztpapm_hub_cc FROM TABLE lt_hub_tab.
+            ENDIF.
+
+          ENDIF.
+        ELSE.
+          mo_context->get_message_container( )->add_message(
+            EXPORTING
+              iv_msg_type               = /iwbep/cl_cos_logger=>error
+              iv_msg_id                 = gc_msg_id
+              iv_msg_number             = 018
+              iv_add_to_response_header = abap_true ).      " Flag for adding or not the message to the response header ).
+        ENDIF.
+      WHEN 'UploadMARKUP'.
+        numberofcolumns = 4.
+        DATA(excel1) = NEW cl_fdt_xl_spreadsheet( document_name = 'file.xlsx'
+                                                 xdocument = is_media_resource-value ).
+
+        excel1->if_fdt_doc_spreadsheet~get_worksheet_names( IMPORTING worksheet_names = DATA(worksheets1) ).
+
+        DATA(firstworksheet_data1) = excel1->if_fdt_doc_spreadsheet~get_itab_from_worksheet( worksheets1[ 1 ] ).
+
+
+        ASSIGN firstworksheet_data1->* TO <fs_excel> .
+
+        "Row 1 - Headings for the upload template
+        LOOP AT <fs_excel> ASSIGNING <row> FROM 2 .
+          row = row + 1.
+          lw_markup-row = row.
+          "processing columns
+          DO numberofcolumns TIMES.
+            ASSIGN COMPONENT sy-index OF STRUCTURE <row> TO <field> .
+            IF sy-subrc = 0 .
+              CASE sy-index .
+                WHEN '1'.
+*                  lw_markup-markup_period = <field>.
+                  lw_markup-markup_period = CONV jahrper( <field> ).
+                WHEN '2'.
+                  lw_markup-markup_rate   = <field>.
+                WHEN '3'.
+                  lw_markup-del_ind       = <field>. "By default value goes as No
+                  TRANSLATE  lw_markup-del_ind TO UPPER CASE.
+                WHEN '4'.
+                  lw_markup-comments      = <field>.
+              ENDCASE.
+            ENDIF.
+          ENDDO .
+
+          lw_markup-created_on = sy-datum.
+          GET TIME STAMP FIELD lv_timestamp.
+          lw_markup-created_at = lv_timestamp.
+          lw_markup-created_by = sy-uname.
+
+          APPEND lw_markup TO lt_markup.
+          CLEAR : lw_markup, lv_timestamp.
+        ENDLOOP.
+
+        DATA: lv_markup_rate  TYPE jahrper.
+        IF lt_markup[] IS NOT INITIAL.
+
+          "Validating Rate
+          LOOP AT lt_markup ASSIGNING FIELD-SYMBOL(<fs_markup>).
+            CLEAR: lv_err_msgnum, lw_messages.
+            lv_err_msgnum    = COND #( WHEN <fs_markup>-markup_rate GT 100
+                                   THEN lc_msgid_023
+                                   WHEN <fs_markup>-markup_rate LT 0
+                                   THEN lc_msgid_024 ).
+            IF lv_err_msgnum IS NOT INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = lv_err_msgnum  ] OPTIONAL ).
+              CONCATENATE lw_messages-text '[ Row' <fs_markup>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = lv_err_msgnum  type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Deletion Indicator
+            CASE <fs_markup>-del_ind.
+              WHEN lc_ind_val_no.
+              WHEN lc_ind_val_yes.
+                lw_messages = VALUE #( lt_messages[ msgnr = '017' ] OPTIONAL ).
+                CONCATENATE lw_messages-text '[ Row' <fs_markup>-row ']' INTO lv_msg SEPARATED BY space.
+                APPEND VALUE #( id = gc_msg_id number = '017' type = 'E' message = lv_msg ) TO lt_err_log.
+                CLEAR: lv_msg.
+              WHEN OTHERS.
+                lw_messages = VALUE #( lt_messages[ msgnr = '014' ] OPTIONAL ).
+                CONCATENATE lw_messages-text '[ Row' <fs_markup>-row ']' INTO lv_msg SEPARATED BY space.
+                APPEND VALUE #( id = gc_msg_id number = '014' type = 'E' message = lv_msg ) TO lt_err_log.
+                CLEAR: lv_msg.
+            ENDCASE.
+          ENDLOOP.
+
+
+
+          IF lt_err_log[] IS NOT INITIAL.
+
+            CALL METHOD me->/iwbep/if_mgw_conv_srv_runtime~get_message_container
+              RECEIVING
+                ro_message_container = lo_msg.
+            IF lo_msg IS BOUND.
+              CALL METHOD lo_msg->add_messages_from_bapi
+                EXPORTING
+                  it_bapi_messages          = lt_err_log       " Return parameter table
+                  iv_add_to_response_header = abap_true.       " Flag for adding or not the message to the response header
+            ENDIF.
+          ELSE.
+
+            lt_markup_tab[] = CORRESPONDING #( lt_markup ).
+            lt_markup_tab_dup[] = lt_markup_tab[].
+
+            DELETE ADJACENT DUPLICATES FROM lt_markup_tab_dup COMPARING markup_period.
+            IF sy-subrc EQ 0.
+              lw_messages = VALUE #( lt_messages[ msgnr = '020' ] OPTIONAL ).
+              mo_context->get_message_container( )->add_message(
+                EXPORTING
+                  iv_msg_type               = /iwbep/cl_cos_logger=>info " Message Type
+                  iv_msg_id                 = gc_msg_id                  " Message Class
+                  iv_msg_number             = 020                        " Message Number
+                  iv_add_to_response_header = abap_true                  " Flag for adding or not the message to the response header ).
+               ).
+            ENDIF.
+
+            SELECT * FROM ztpapm_markup
+                     INTO TABLE @DATA(lt_existing_markup)
+                     FOR ALL ENTRIES IN @lt_markup_tab
+                     WHERE markup_period = @lt_markup_tab-markup_period.
+            IF lt_existing_markup[] IS NOT INITIAL.
+              mo_context->get_message_container( )->add_message(
+                EXPORTING
+                  iv_msg_type               =  /iwbep/cl_cos_logger=>error  " Message Type
+                  iv_msg_id                 =  gc_msg_id                    " Message Class
+                  iv_msg_number             =  019                          " Message Number
+*                  iv_msg_text              =                               " Message Text
+                  iv_msg_v1                 =  lc_tab_name_markup                  " Message Variable
+                  iv_add_to_response_header =  abap_true                    " Flag for adding or not the message to the response header
+              ).
+            ELSE.
+              MODIFY ztpapm_markup FROM TABLE lt_markup_tab.
+            ENDIF.
+
+          ENDIF.
+        ELSE.
+          mo_context->get_message_container( )->add_message(
+            EXPORTING
+              iv_msg_type               = /iwbep/cl_cos_logger=>error  " Message Type
+              iv_msg_id                 = gc_msg_id                    " Message Class
+              iv_msg_number             = 018                          " Message Number
+              iv_add_to_response_header = abap_true ).                 " Flag for adding or not the message to the response header ).
+
+        ENDIF.
+      WHEN 'UploadDISALLOWED'.
+        numberofcolumns = 7.
+        DATA(excel3) = NEW cl_fdt_xl_spreadsheet( document_name = 'file.xlsx'
+                                              xdocument = is_media_resource-value ).
+
+        excel3->if_fdt_doc_spreadsheet~get_worksheet_names( IMPORTING worksheet_names = DATA(worksheets3) ).
+
+        DATA(firstworksheet_data3) = excel3->if_fdt_doc_spreadsheet~get_itab_from_worksheet( worksheets3[ 1 ] ).
+
+        ASSIGN firstworksheet_data3->* TO <fs_excel> .
+
+        "Row 1 - Headings for the upload template
+        LOOP AT <fs_excel> ASSIGNING <row> FROM 2 .
+          row = row + 1.
+          lw_disallow-row = row.
+          "processing columns
+          DO numberofcolumns TIMES.
+            ASSIGN COMPONENT sy-index OF STRUCTURE <row> TO <field> .
+            IF sy-subrc = 0 .
+              CASE sy-index .
+                WHEN '1'.
+                  lw_disallow-bukrs = <field>.
+                WHEN '2'.
+                  lw_disallow-kostl = <field>.
+                  IF lw_disallow-kostl IS NOT INITIAL.
+                    lw_disallow-kostl = |{ lw_disallow-kostl  ALPHA = IN }|.
+                  ENDIF.
+                WHEN '3'.
+                  lw_disallow-cost_typ = <field>.
+                WHEN '4'.
+                  lw_disallow-disallow_per = <field>.
+                WHEN '5'.
+                  lw_disallow-version       = <field>.
+                WHEN '6'.
+                  lw_disallow-del_ind       = <field>. "By default value goes as No
+                  TRANSLATE  lw_disallow-del_ind TO UPPER CASE.
+                WHEN '7'.
+                  lw_disallow-comments      = <field>.
+              ENDCASE.
+            ENDIF.
+          ENDDO .
+
+          lw_disallow-created_on = sy-datum.
+          GET TIME STAMP FIELD lv_timestamp.
+          lw_disallow-created_at = lv_timestamp.
+          lw_disallow-created_by = sy-uname.
+
+          APPEND lw_disallow TO lt_disallow.
+          CLEAR : lw_disallow, lv_timestamp.
+        ENDLOOP.
+
+        IF lt_disallow[] IS NOT INITIAL.
+
+          SELECT bukrs, kostl FROM csks
+                 INTO TABLE @DATA(lt_kostl)
+                 FOR ALL ENTRIES IN @lt_disallow
+                 WHERE kostl = @lt_disallow-kostl
+                   AND bukrs = @lt_disallow-bukrs.
+          IF lt_kostl[] IS NOT INITIAL.
+            SORT lt_kostl BY bukrs kostl ASCENDING.
+          ENDIF.
+          "Validating Rate
+          LOOP AT lt_disallow ASSIGNING FIELD-SYMBOL(<fs_disallow>).
+            CLEAR: lv_err_msgnum, lw_messages.
+            lv_err_msgnum    = COND #( WHEN <fs_disallow>-disallow_per GT 100
+                                   THEN lc_msgid_023
+                                   WHEN <fs_disallow>-disallow_per LT 0
+                                   THEN lc_msgid_024 ).
+            IF lv_err_msgnum IS NOT INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = lv_err_msgnum  ] OPTIONAL ).
+              CONCATENATE lw_messages-text '[ Row' <fs_disallow>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = lv_err_msgnum  type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Deletion Indicator
+            CASE <fs_disallow>-del_ind.
+              WHEN lc_ind_val_no.
+              WHEN lc_ind_val_yes.
+                lw_messages = VALUE #( lt_messages[ msgnr = '017' ] OPTIONAL ).
+                CONCATENATE lw_messages-text '[ Row' <fs_disallow>-row ']' INTO lv_msg SEPARATED BY space.
+                APPEND VALUE #( id = gc_msg_id number = '017' type = 'E' message = lv_msg ) TO lt_err_log.
+                CLEAR: lv_msg.
+              WHEN OTHERS.
+                lw_messages = VALUE #( lt_messages[ msgnr = '014' ] OPTIONAL ).
+                CONCATENATE lw_messages-text '[ Row' <fs_disallow>-row ']' INTO lv_msg SEPARATED BY space.
+                APPEND VALUE #( id = gc_msg_id number = '014' type = 'E' message = lv_msg ) TO lt_err_log.
+                CLEAR: lv_msg.
+            ENDCASE.
+            "Valid Company Code
+            DATA(lw_bukrs1)    = VALUE #( lt_bukrs[ bukrs = <fs_disallow>-bukrs ] OPTIONAL ).
+            IF lw_bukrs1-bukrs IS INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = '001' ] OPTIONAL ).
+              REPLACE '&1' IN lw_messages-text WITH <fs_disallow>-bukrs.
+              CONCATENATE lw_messages-text '[ Row' <fs_disallow>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = '001' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Valid Cost Type
+            DATA(lw_cost_typ1) = VALUE #( lt_cost_typ[ cost_typ = <fs_disallow>-cost_typ ] OPTIONAL ).
+            IF lw_cost_typ1-cost_typ IS INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = '003' ] OPTIONAL ).
+              REPLACE '&1' IN lw_messages-text WITH <fs_disallow>-cost_typ.
+              CONCATENATE lw_messages-text '[ Row' <fs_disallow>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = '003' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+            "Valid Cost Center
+            DATA(lw_kostl1)    = VALUE #( lt_kostl[ bukrs = <fs_disallow>-bukrs kostl = <fs_disallow>-kostl ] OPTIONAL ).
+            IF lw_kostl1-kostl IS INITIAL.
+              lw_messages = VALUE #( lt_messages[ msgnr = '004' ] OPTIONAL ).
+              REPLACE '&1' IN lw_messages-text WITH <fs_disallow>-kostl.
+              CONCATENATE lw_messages-text '[ Row' <fs_disallow>-row ']' INTO lw_messages-text SEPARATED BY space.
+              APPEND VALUE #( id = gc_msg_id number = '004' type = 'E' message = lw_messages-text ) TO lt_err_log.
+            ENDIF.
+          ENDLOOP.
+
+          IF lt_err_log[] IS NOT INITIAL.
+
+            CALL METHOD me->/iwbep/if_mgw_conv_srv_runtime~get_message_container
+              RECEIVING
+                ro_message_container = lo_msg.
+            IF lo_msg IS BOUND.
+              CALL METHOD lo_msg->add_messages_from_bapi
+                EXPORTING
+                  it_bapi_messages          = lt_err_log       " Return parameter table
+                  iv_add_to_response_header = abap_true.       " Flag for adding or not the message to the response header
+            ENDIF.
+          ELSE.
+
+            lt_disallow_tab[] = CORRESPONDING #( lt_disallow ).
+            lt_disallow_tab_dup[] = lt_disallow_tab[].
+
+            SORT lt_disallow_tab_dup BY bukrs kostl cost_typ ASCENDING.
+            DELETE ADJACENT DUPLICATES FROM lt_disallow_tab_dup COMPARING bukrs kostl cost_typ.
+            IF sy-subrc EQ 0.
+              lw_messages = VALUE #( lt_messages[ msgnr = '020' ] OPTIONAL ).
+              mo_context->get_message_container( )->add_message(
+                EXPORTING
+                  iv_msg_type               = /iwbep/cl_cos_logger=>info " Message Type
+                  iv_msg_id                 = gc_msg_id                  " Message Class
+                  iv_msg_number             = 020                        " Message Number
+                  iv_add_to_response_header = abap_true                  " Flag for adding or not the message to the response header ).
+               ).
+            ENDIF.
+
+            SELECT * FROM ztpapm_disallow
+                     INTO TABLE @DATA(lt_existing_disallow)
+                     FOR ALL ENTRIES IN @lt_disallow_tab
+                     WHERE bukrs = @lt_disallow_tab-bukrs
+                       AND kostl = @lt_disallow_tab-kostl
+                       AND cost_typ = @lt_disallow_tab-cost_typ.
+            IF lt_existing_disallow[] IS NOT INITIAL.
+              mo_context->get_message_container( )->add_message(
+                EXPORTING
+                  iv_msg_type               =  /iwbep/cl_cos_logger=>error  " Message Type
+                  iv_msg_id                 =  gc_msg_id                    " Message Class
+                  iv_msg_number             =  019                          " Message Number
+*                  iv_msg_text              =                               " Message Text
+                  iv_msg_v1                 =  lc_tab_name_disallow         " Message Variable
+                  iv_add_to_response_header =  abap_true                    " Flag for adding or not the message to the response header
+              ).
+            ELSE.
+              MODIFY ztpapm_disallow FROM TABLE lt_disallow_tab.
+            ENDIF.
+
+          ENDIF.
+        ELSE.
+          mo_context->get_message_container( )->add_message(
+            EXPORTING
+              iv_msg_type               = /iwbep/cl_cos_logger=>error  " Message Type
+              iv_msg_id                 = gc_msg_id                    " Message Class
+              iv_msg_number             = 018                          " Message Number
+              iv_add_to_response_header = abap_true ).                 " Flag for adding or not the message to the response header ).
+
+        ENDIF.
+
+      WHEN OTHERS.
+    ENDCASE.
+  ENDMETHOD.
